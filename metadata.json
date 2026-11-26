@@ -1,0 +1,6 @@
+{
+  "name": "TapeLoop",
+  "description": "24/7 circular audio buffer recorder for iOS and web with 5–30 minute rolling capture, visual waveforms, instant segment saving, and battery optimization.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

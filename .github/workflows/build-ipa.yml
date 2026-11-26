@@ -1,0 +1,65 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "ios-native/**"
+      - ".github/workflows/build-ipa.yml"
+
+jobs:
+  build-unsigned-ipa:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate TapeLoop.xcodeproj
+        working-directory: ios-native
+        run: xcodegen generate
+
+      - name: Build iOS Archive (unsigned for AltStore / SideStore / Sideloadly)
+        working-directory: ios-native
+        run: |
+          xcodebuild archive \
+            -project TapeLoop.xcodeproj \
+            -scheme TapeLoop \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/TapeLoop.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
+
+      - name: Package TapeLoop-unsigned.ipa
+        working-directory: ios-native
+        run: |
+          mkdir -p build/Payload
+          cp -R build/TapeLoop.xcarchive/Products/Applications/TapeLoop.app build/Payload/
+          cd build
+          zip -qry TapeLoop-unsigned.ipa Payload
+          ls -lh TapeLoop-unsigned.ipa
+          shasum -a 256 TapeLoop-unsigned.ipa
+
+      - name: Upload TapeLoop-unsigned.ipa artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TapeLoop-iOS-IPA
+          path: ios-native/build/TapeLoop-unsigned.ipa
+          retention-days: 30
+
+      - name: Write build summary
+        run: |
+          {
+            echo "## TapeLoop iOS IPA Ready"
+            echo ""
+            echo "Download **TapeLoop-iOS-IPA** from the **Artifacts** section below, unzip it to get \`TapeLoop-unsigned.ipa\`, and install it on your iPhone with **AltStore**, **SideStore**, or **Sideloadly**."
+          } >> "$GITHUB_STEP_SUMMARY"
